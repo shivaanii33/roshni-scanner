@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <title>Roshni '26 Entry Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode"
+          type="text/javascript">
+  </script>
+
+  <style>
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f7f3ee;
+      text-align: center;
+    }
+
+    .header {
+      background: #5b2c83;
+      color: white;
+      padding: 25px 15px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 30px;
+    }
+
+    .header h2 {
+      margin: 8px 0 0;
+      font-size: 20px;
+      font-weight: normal;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 25px auto;
+      padding: 15px;
+    }
+
+    #reader {
+      width: 100%;
+      max-width: 450px;
+      margin: auto;
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+    }
+
+    #result {
+      margin-top: 25px;
+      padding: 20px;
+      border-radius: 15px;
+      font-size: 20px;
+      font-weight: bold;
+      white-space: pre-line;
+      display: none;
+    }
+
+    .success {
+      background: #d9f7df;
+      color: #126b2c;
+      display: block !important;
+    }
+
+    .error {
+      background: #ffdede;
+      color: #a40000;
+      display: block !important;
+    }
+
+    .checking {
+      background: #fff2c7;
+      color: #805d00;
+      display: block !important;
+    }
+
+    .instruction {
+      margin-top: 20px;
+      color: #555;
+      font-size: 15px;
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+  <div class="header">
+
+    <h1>🪔 ROSHNI '26</h1>
+
+    <h2>Entry Scanner</h2>
+
+  </div>
+
+
+  <div class="container">
+
+    <div id="reader"></div>
+
+    <div id="result"></div>
+
+    <div class="instruction">
+
+      Point the camera at the student's QR code.
+
+      <br><br>
+
+      Each QR can be used only once.
+
+    </div>
+
+  </div>
+
+
+<script>
+
+
+/* =====================================================
+   IMPORTANT
+   PUT YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
+===================================================== */
+
+const SCRIPT_URL =
+  "https://script.google.com/a/macros/nie.ac.in/s/AKfycbzUXGpYFszViCWLj6M6EePFWGTFiRbWiLeEfSzruPcTULrUaaOM4FagrVrqizx_SIY/exec";
+
+
+let scanner = null;
+
+let processing = false;
+
+
+/* =====================================================
+   SHOW RESULT
+===================================================== */
+
+function showResult(message, type) {
+
+  const result =
+    document.getElementById("result");
+
+  result.className = "";
+
+  result.classList.add(type);
+
+  result.innerText = message;
+
+}
+
+
+/* =====================================================
+   VERIFY QR WITH GOOGLE APPS SCRIPT
+===================================================== */
+
+function verifyQR(qrData) {
+
+  showResult(
+    "⏳ Verifying QR...",
+    "checking"
+  );
+
+
+  const callbackName =
+    "qrCallback_" +
+    Date.now();
+
+
+  window[callbackName] =
+    function(response) {
+
+      delete window[callbackName];
+
+      processing = false;
+
+
+      if (response.success) {
+
+        showResult(
+          response.message,
+          "success"
+        );
+
+      }
+
+      else {
+
+        showResult(
+          response.message,
+          "error"
+        );
+
+      }
+
+    };
+
+
+  const script =
+    document.createElement("script");
+
+
+  script.src =
+    SCRIPT_URL +
+    "?action=verify" +
+    "&qr=" +
+    encodeURIComponent(qrData) +
+    "&callback=" +
+    callbackName;
+
+
+  script.onerror =
+    function() {
+
+      delete window[callbackName];
+
+      processing = false;
+
+      showResult(
+        "❌ Unable to contact verification server.",
+        "error"
+      );
+
+    };
+
+
+  document.body.appendChild(script);
+
+}
+
+
+/* =====================================================
+   QR SCANNED
+===================================================== */
+
+function onScanSuccess(decodedText) {
+
+  if (processing) return;
+
+  processing = true;
+
+
+  // Stop camera temporarily
+  if (scanner) {
+
+    scanner.clear().catch(
+      function() {}
+    );
+
+  }
+
+
+  verifyQR(decodedText);
+
+}
+
+
+/* =====================================================
+   CAMERA START
+===================================================== */
+
+function startScanner() {
+
+  scanner =
+    new Html5Qrcode("reader");
+
+
+  scanner.start(
+
+    {
+      facingMode: "environment"
+    },
+
+    {
+      fps: 10,
+      qrbox: {
+        width: 250,
+        height: 250
+      }
+    },
+
+    onScanSuccess,
+
+    function(errorMessage) {
+      // Ignore continuous scanning errors
+    }
+
+  ).catch(
+
+    function(error) {
+
+      showResult(
+        "❌ Camera could not be started.\n\n" +
+        "Please allow camera permission and reload the page.",
+        "error"
+      );
+
+    }
+
+  );
+
+}
+
+
+/* =====================================================
+   START
+===================================================== */
+
+window.onload = function() {
+
+  startScanner();
+
+};
+
+
+</script>
+
+</body>
+
+</html>
