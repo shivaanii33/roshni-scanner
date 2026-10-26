@@ -268,25 +268,64 @@ function onScanSuccess(decodedText) {
    CAMERA START
 ===================================================== */
 
-function startScanner() {
+async function startScanner() {
 
-  scanner =
-    new Html5Qrcode("reader");
+  try {
 
+    const cameras =
+      await Html5Qrcode.getCameras();
 
-  scanner.start(
+    if (!cameras || cameras.length === 0) {
 
-    {
-      facingMode: "environment"
-    },
+      showResult(
+        "❌ No camera found.",
+        "error"
+      );
 
-    {
-      fps: 10,
-      qrbox: {
-        width: 250,
-        height: 250
+      return;
+    }
+
+    scanner =
+      new Html5Qrcode("reader");
+
+    const cameraId =
+      cameras[cameras.length - 1].id;
+
+    await scanner.start(
+
+      cameraId,
+
+      {
+        fps: 10,
+        qrbox: {
+          width: 250,
+          height: 250
+        }
+      },
+
+      onScanSuccess,
+
+      function(errorMessage) {
+        // Ignore scanning errors
       }
-    },
+
+    );
+
+  }
+
+  catch(error) {
+
+    console.error(error);
+
+    showResult(
+      "❌ Camera permission was not granted.\n\n" +
+      "Please allow camera access in your browser settings and reload this page.",
+      "error"
+    );
+
+  }
+
+}
 
     onScanSuccess,
 
